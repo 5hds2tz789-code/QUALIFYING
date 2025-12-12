@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Qualifying Piston Rodeo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 1rem;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+    }
+    .panel {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    label {
+      display: block;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    input, select, button, textarea {
+      margin-top: 0.25rem;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.95rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 100px;
+    }
+    button {
+      cursor: pointer;
+      border-radius: 4px;
+      border: none;
+      background: #1976d2;
+      color: white;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    button.secondary {
+      background: #555;
+    }
+    button.danger {
+      background: #d32f2f;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .col {
+      flex: 1 1 260px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.4rem 0.5rem;
+      text-align: center;
+    }
+    th {
+      background: #eeeeee;
+    }
+    .small-text {
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+      background: #1976d2;
+      color: white;
+      font-size: 0.75rem;
+    }
+    .status {
+      margin-top: 0.5rem;
+      font-weight: 600;
+    }
+  
+
+    /* Layout (igual que el otro app) */
+    .row, .row-qualy {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .col, .col-qualy {
+      flex: 1 1 260px;
+    }
+
+    /* Ajustes específicos Qualy para que se vea igual de compacto */
+    h3 {
+      margin: 0.2rem 0 0.4rem 0;
+      font-size: 0.95rem;
+    }
+
+  </style>
+</head>
+
+<body>
+  <h1>Qualifying Piston Rodeo</h1>
+
+  <div class="panel">
+    <h2>1. Precargar participantes</h2>
+    <textarea id="inputParticipantes"></textarea>
+    <button id="btnCargarParticipantes">Cargar participantes</button>
+    <p id="infoParticipantes" class="small-text"></p>
+  </div>
+
+  <div class="panel">
+    <h2>2. Cronometrar</h2>
+
+    <div class="row-qualy">
+      <div class="col-qualy">
+        <h3>Crono A</h3>
+        <input id="inputDorsalCronoA" placeholder="Dorsal A" />
+        <button id="btnCronometrarA">START/STOP A</button>
+        <p id="estadoCronoA" class="status">Cronómetro parado.</p>
+        <p id="tiempoEnVivoA" class="small-text"></p>
+        <p id="ultimoTiempoA" class="small-text"></p>
+      </div>
+
+      <div class="col-qualy">
+        <h3>Crono B</h3>
+        <input id="inputDorsalCronoB" placeholder="Dorsal B" />
+        <button id="btnCronometrarB">START/STOP B</button>
+        <p id="estadoCronoB" class="status">Cronómetro parado.</p>
+        <p id="tiempoEnVivoB" class="small-text"></p>
+        <p id="ultimoTiempoB" class="small-text"></p>
+      </div>
+    </div>
+
+    <button id="btnDeshacerTiempo" class="danger">Deshacer último tiempo</button>
+
+    <hr />
+    <div class="row">
+      <div class="col">
+        <label for="inputDorsalManual">Dorsal para tiempo manual</label>
+        <input id="inputDorsalManual" placeholder="Dorsal" />
+      </div>
+      <div class="col">
+        <label for="inputTiempoManual">Introducir tiempo manual (mm:ss.cc o ss.cc)</label>
+        <input id="inputTiempoManual" placeholder="Ej: 01:23.45 o 45.20" />
+      </div>
+    </div>
+<button id="btnGuardarTiempoManual" class="secondary">Guardar tiempo manual para este dorsal</button>
+    <p id="ultimoTiempoManual" class="small-text"></p>
+  </div>
+
+  <div class="panel">
+    <h2>3. Qualifying</h2>
+    <select id="filtroModalidad">
+      <option value="TODAS">Todas</option>
+      <option value="Enduro">Enduro</option>
+      <option value="Hard Enduro">Hard Enduro</option>
+      <option value="Ambas">Ambas</option>
+    </select>
+
+    <table>
+      <thead>
+        <tr><th>Pos</th><th>Dorsal</th><th>Nombre</th><th>Modalidad</th><th>Tiempo</th></tr>
+      </thead>
+      <tbody id="tablaSalida"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>4. Exportar PDF</h2>
+    <button id="btnExportPDF">Exportar PDF</button>
+  </div>
+
+<script>
+const participantes = new Map();
+const historialTiempos = [];
+const STORAGE_KEY = "pistonRodeo_ordenSalida_v1";
+
+const estadoCronoA = { enMarcha: false, inicioMs: null, dorsal: null, intervalId: null };
+const estadoCronoB = { enMarcha: false, inicioMs: null, dorsal: null, intervalId: null };
+
+function formatearTiempo(ms) {
+  if (ms == null) return "-";
+  const m = Math.floor(ms/60000);
+  const s = Math.floor((ms%60000)/1000);
+  const c = Math.floor((ms%1000)/10);
+  return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+"."+String(c).padStart(2,"0");
+}
+
+function saveState(){
+  const lista=[];
+  participantes.forEach(p=>lista.push(p));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({participantes:lista, historialTiempos}));
+}
+
+function restoreState(){
+  const raw=localStorage.getItem(STORAGE_KEY);
+  if(!raw) return;
+  const data=JSON.parse(raw);
+  participantes.clear();
+  if(data.participantes) data.participantes.forEach(p=> participantes.set(p.dorsal,p));
+  historialTiempos.length=0;
+  if(data.historialTiempos) data.historialTiempos.forEach(h=>historialTiempos.push(h));
+  refrescarTabla();
+}
+
+window.onload = restoreState;
+
+document.getElementById("btnCargarParticipantes").onclick = ()=>{
+  // Reiniciar completamente la lista y los tiempos
+  participantes.clear();
+  historialTiempos.length = 0;
+
+  const txt = document.getElementById("inputParticipantes").value.trim();
+  let count = 0;
+
+  txt.split(/\r?\n/).forEach(l => {
+    const limpio = l.trim();
+    if (!limpio) return;
+    const p = limpio.split(";");
+    if (p.length < 2) return;
+    const dorsal = (p[0] || "").trim();
+    const nombre = (p[1] || "").trim();
+    const modalidad = (p[2] || "").trim();
+    if (!dorsal) return;
+    participantes.set(dorsal, {
+      dorsal,
+      nombre,
+      modalidad,
+      tiempoMs: null
+    });
+    count++;
+  });
+
+  // Reset visual de estado
+  document.getElementById("infoParticipantes").textContent = "Cargados " + count + " participantes (reinicio completo).";
+
+  estadoCronoA.enMarcha = false;
+  estadoCronoA.inicioMs = null;
+  estadoCronoA.dorsal = null;
+  if (estadoCronoA.intervalId) {
+    clearInterval(estadoCronoA.intervalId);
+    estadoCronoA.intervalId = null;
+  }
+  estadoCronoB.enMarcha = false;
+  estadoCronoB.inicioMs = null;
+  estadoCronoB.dorsal = null;
+  if (estadoCronoB.intervalId) {
+    clearInterval(estadoCronoB.intervalId);
+    estadoCronoB.intervalId = null;
+  }
+
+  const estadoA = document.getElementById("estadoCronoA");
+  if (estadoA) estadoA.textContent = "Cronómetro parado.";
+  const vivoA = document.getElementById("tiempoEnVivoA");
+  if (vivoA) vivoA.textContent = "";
+  const ultimoA = document.getElementById("ultimoTiempoA");
+  if (ultimoA) ultimoA.textContent = "";
+
+  const estadoB = document.getElementById("estadoCronoB");
+  if (estadoB) estadoB.textContent = "Cronómetro parado.";
+  const vivoB = document.getElementById("tiempoEnVivoB");
+  if (vivoB) vivoB.textContent = "";
+  const ultimoB = document.getElementById("ultimoTiempoB");
+  if (ultimoB) ultimoB.textContent = "";
+
+  const dorsalManual = document.getElementById("inputDorsalManual");
+  if (dorsalManual) dorsalManual.value = "";
+  const tManual = document.getElementById("inputTiempoManual");
+  if (tManual) tManual.value = "";
+
+  refrescarTabla();
+  saveState();
+};
+
+function obtenerLista(){
+  const filtro=document.getElementById("filtroModalidad").value;
+  const arr=[];
+  participantes.forEach(p=>{
+    if(filtro!=="TODAS"){
+      if(p.modalidad!==filtro && p.modalidad!=="Ambas") return;
+    }
+    arr.push(p);
+  });
+  arr.sort((a,b)=>{
+    if(a.tiempoMs==null && b.tiempoMs==null) return 0;
+    if(a.tiempoMs==null) return 1;
+    if(b.tiempoMs==null) return -1;
+    return a.tiempoMs - b.tiempoMs;
+  });
+  return arr;
+}
+
+function refrescarTabla(){
+  const tb=document.getElementById("tablaSalida");
+  tb.innerHTML="";
+  obtenerLista().forEach((p,i)=>{
+    tb.innerHTML+=`<tr>
+      <td>${p.tiempoMs!=null? i+1 : "-"}</td>
+      <td><span class="badge">${p.dorsal}</span></td>
+      <td>${p.nombre}</td>
+      <td>${p.modalidad}</td>
+      <td>${formatearTiempo(p.tiempoMs)}</td>
+    </tr>`;
+  });
+}
+
+document.getElementById("filtroModalidad").onchange = refrescarTabla;
+
+function toggleCrono(estado, ids){
+  const dorsal = document.getElementById(ids.input).value.trim();
+  const lblEstado = document.getElementById(ids.estado);
+  const lblVivo = document.getElementById(ids.vivo);
+  const lblUltimo = document.getElementById(ids.ultimo);
+
+  if (!estado.enMarcha) {
+    if (!dorsal) return alert("Introduce dorsal");
+    if (!participantes.has(dorsal))
+      participantes.set(dorsal,{dorsal,nombre:"",modalidad:"",tiempoMs:null});
+
+    estado.dorsal = dorsal;
+    estado.inicioMs = Date.now();
+    estado.enMarcha = true;
+
+    if (lblEstado) lblEstado.textContent = "Cronometrando " + dorsal + "...";
+    if (lblVivo) lblVivo.textContent = "Tiempo: 00:00.00";
+
+    if (estado.intervalId) {
+      clearInterval(estado.intervalId);
+      estado.intervalId = null;
+    }
+    estado.intervalId = setInterval(()=>{
+      if (!estado.enMarcha || estado.inicioMs == null) return;
+      const tActual = Date.now() - estado.inicioMs;
+      if (lblVivo) lblVivo.textContent = "Tiempo: " + formatearTiempo(tActual);
+    }, 100);
+
+  } else {
+    const t = Date.now() - estado.inicioMs;
+    const p = participantes.get(estado.dorsal);
+    historialTiempos.push({dorsal: estado.dorsal, tiempoAnterior: p.tiempoMs});
+    p.tiempoMs = t;
+    if (lblUltimo) lblUltimo.textContent = "Último tiempo (" + estado.dorsal + "): " + formatearTiempo(t);
+    estado.enMarcha = false;
+    estado.inicioMs = null;
+    if (estado.intervalId) {
+      clearInterval(estado.intervalId);
+      estado.intervalId = null;
+    }
+    if (lblEstado) lblEstado.textContent = "Cronómetro parado.";
+    if (lblVivo) lblVivo.textContent = "";
+    refrescarTabla();
+    saveState();
+  }
+}
+
+document.getElementById("btnCronometrarA").onclick = ()=>{
+  toggleCrono(estadoCronoA, {
+    input: "inputDorsalCronoA",
+    estado: "estadoCronoA",
+    vivo: "tiempoEnVivoA",
+    ultimo: "ultimoTiempoA"
+  });
+};
+
+document.getElementById("btnCronometrarB").onclick = ()=>{
+  toggleCrono(estadoCronoB, {
+    input: "inputDorsalCronoB",
+    estado: "estadoCronoB",
+    vivo: "tiempoEnVivoB",
+    ultimo: "ultimoTiempoB"
+  });
+};
+
+document.getElementById("btnDeshacerTiempo").onclick = ()=>{
+  if (estadoCronoA.enMarcha || estadoCronoB.enMarcha)
+    return alert("Detén primero los cronos en marcha.");
+  if (historialTiempos.length===0) return alert("No hay tiempos para deshacer.");
+  const u = historialTiempos.pop();
+  participantes.get(u.dorsal).tiempoMs = u.tiempoAnterior;
+  refrescarTabla();
+  saveState();
+};
+
+
+function parseTiempoManual(str) {
+  const t = str.trim();
+  if (!t) return null;
+  // Formato mm:ss.cc o m:ss.cc
+  let m = t.match(/^(\d+):(\d{1,2})(?:[.,](\d{1,2}))?$/);
+  if (m) {
+    const min = parseInt(m[1], 10);
+    const seg = parseInt(m[2], 10);
+    const cent = m[3] ? parseInt(m[3].padEnd(2, "0"), 10) : 0;
+    if (seg >= 60) return null;
+    return min * 60000 + seg * 1000 + cent * 10;
+  }
+  // Formato ss.cc o ss
+  m = t.match(/^(\d+)(?:[.,](\d{1,2}))?$/);
+  if (m) {
+    const seg = parseInt(m[1], 10);
+    const cent = m[2] ? parseInt(m[2].padEnd(2, "0"), 10) : 0;
+    return seg * 1000 + cent * 10;
+  }
+  return null;
+}
+
+document.getElementById("btnGuardarTiempoManual").onclick = ()=>{
+  const dorsal = document.getElementById("inputDorsalManual").value.trim();
+  if (!dorsal) {
+    alert("Introduce primero el dorsal para asignar el tiempo manual.");
+    return;
+  }
+  let p = participantes.get(dorsal);
+  if (!p) {
+    if (!confirm("Ese dorsal no está en la lista. ¿Quieres crearlo igualmente?")) {
+      return;
+    }
+    p = { dorsal, nombre:"", modalidad:"", tiempoMs:null };
+    participantes.set(dorsal, p);
+  }
+  const str = document.getElementById("inputTiempoManual").value;
+  const ms = parseTiempoManual(str);
+  if (ms == null) {
+    alert("Formato de tiempo no válido. Usa mm:ss.cc o ss.cc");
+    return;
+  }
+  historialTiempos.push({ dorsal, tiempoAnterior: p.tiempoMs });
+  p.tiempoMs = ms;
+  document.getElementById("ultimoTiempoManual").textContent =
+    "Último tiempo (manual): " + formatearTiempo(ms);
+  refrescarTabla();
+  saveState();
+};
+
+document.getElementById("btnExportPDF").onclick = ()=> {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("No se ha podido cargar jsPDF.");
+    return;
+  }
+
+  const jsPDF = window.jspdf.jsPDF;
+
+  // Mismo estilo de exportación que el cronometraje offline:
+  // - Título + fecha
+  // - Tabla en vertical (portrait) con cabecera y salto de página
+  const doc = new jsPDF({ orientation: "portrait" });
+
+  const margenX = 10;
+  let posY = 15;
+
+  const titulo = "Qualifying Piston Rodeo - Resultados";
+  doc.setFontSize(14);
+  doc.text(titulo, margenX, posY);
+  posY += 6;
+
+  const ahora = new Date().toLocaleString();
+  doc.setFontSize(10);
+  doc.text("Generado: " + ahora, margenX, posY);
+  posY += 8;
+
+  doc.setFontSize(8);
+
+  const lista = obtenerLista();
+
+  const headers = ["Pos", "Dorsal", "Nombre", "Modalidad", "Tiempo"];
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const anchoTotal = pageWidth - 2 * margenX;
+
+  // Anchos base (similares al otro app, adaptados a Qualy)
+  const baseWidths = [10, 16, 70, 30, 20];
+  const anchoBaseUsado = baseWidths.reduce((a, b) => a + b, 0);
+
+  // Si sobra espacio, lo repartimos sobre "Nombre" para que no quede aire.
+  const extra = Math.max(0, Math.floor(anchoTotal - anchoBaseUsado));
+  const widths = baseWidths.slice();
+  widths[2] += extra;
+
+  const startX = margenX;
+
+  function dibujarFila(valores, y) {
+    let x = startX;
+    valores.forEach((v, idx) => {
+      doc.text(String(v ?? ""), x, y);
+      x += widths[idx];
+    });
+  }
+
+  function dibujarCabecera() {
+    dibujarFila(headers, posY);
+    posY += 6;
+    doc.setLineWidth(0.1);
+    const totalW = widths.reduce((a, b) => a + b, 0);
+    doc.line(margenX, posY - 4, margenX + totalW, posY - 4);
+  }
+
+  dibujarCabecera();
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  lista.forEach((p, idx) => {
+    // Salto de página
+    if (posY > pageHeight - 15) {
+      doc.addPage();
+      posY = 15;
+      doc.setFontSize(8);
+      dibujarCabecera();
+    }
+
+    const pos = (p.tiempoMs != null) ? (idx + 1) : "-";
+    const fila = [
+      pos,
+      p.dorsal || "",
+      p.nombre || "",
+      p.modalidad || "",
+      formatearTiempo(p.tiempoMs)
+    ];
+
+    dibujarFila(fila, posY);
+    posY += 5;
+  });
+
+  // --- Descarga/compartir PDF compatible con iPhone (Safari) ---
+  const nombreArchivo = "qualifying_piston_rodeo.pdf";
+  try {
+    const pdfBlob = doc.output("blob");
+    const file = new File([pdfBlob], nombreArchivo, { type: "application/pdf" });
+
+    // Si iOS permite compartir archivos, abre la hoja de compartir
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: nombreArchivo }).catch(() => {
+        const url = URL.createObjectURL(pdfBlob);
+        window.open(url, "_blank");
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      });
+    } else {
+      // Fallback: abrir en una pestaña nueva + link de descarga
+      const url = URL.createObjectURL(pdfBlob);
+      const opened = window.open(url, "_blank");
+
+      if (!opened) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = nombreArchivo;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+  } catch (e) {
+    // Último recurso: método clásico
+    doc.save("qualifying_piston_rodeo.pdf");
+  }
+
+};
+</script>
+
+</body>
+</html>
