@@ -1,0 +1,21 @@
+{
+  "name": "Piston Rodeo",
+  "short_name": "PistonRodeo",
+  "start_url": "/Piston-Rodeo/",
+  "scope": "/Piston-Rodeo/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b2d4f",
+  "icons": [
+    {
+      "src": "/Piston-Rodeo/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/Piston-Rodeo/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
